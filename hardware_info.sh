@@ -56,7 +56,7 @@ echo "  Meteor Lake (14th):   7d55, 7d67"
 echo "  Lunar Lake (18th):    7d14, 7d72"
 echo ""
 echo "Detected Intel GPUs:"
-lspci -nn 2>/dev/null | grep -E "8086.*VGA|8086.*Display" || echo "  None"
+lspci -nn 2>/dev/null | grep VGA | grep 8086 | head -5 || echo "  None"
 echo ""
 
 echo "--- DRI Devices ---"

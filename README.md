@@ -23,7 +23,32 @@
 - **Intel VAAPI**: h264_vaapi, hevc_vaapi
 - **Apple VideoToolbox**: h264_videotoolbox, hevc_videotoolbox (macOS)
 
+## 支持的发行版
+
+- **Debian** (及衍生版)
+- **Arch Linux** (及衍生版)
+
 ## 使用方法
+
+### Arch Linux
+
+```bash
+# 1. 安装依赖（首次使用）
+./install_env.sh
+
+# 2. 查看硬件信息
+bash hardware_info.sh
+
+# 3. 运行转码测试
+bash gpu_transcode_test.sh
+
+# 4. 如需更新驱动（仅 Intel GPU 失败时）
+./update_vaapi.sh
+# 或
+./update_libva.sh
+```
+
+### Debian
 
 ```bash
 # 1. 安装依赖（首次使用）
@@ -71,6 +96,22 @@ bash gpu_transcode_test.sh
 | Lunar Lake (18th) | LNL | 7d14, 7d72 |
 
 ## 依赖
+
+### Arch Linux
+
+- ffmpeg
+- libva-utils (vainfo)
+- pciutils (lspci)
+- coreutils (basename, cut, ls)
+- findutils
+- grep
+- gawk
+- util-linux
+- intel-media-driver (Intel GPU)
+
+推荐使用 `install_env.sh` 自动安装。
+
+### Debian
 
 - ffmpeg
 - ffprobe
@@ -141,3 +182,11 @@ A: 使用 `bash` 运行脚本：
 bash hardware_info.sh
 bash gpu_transcode_test.sh
 ```
+
+### Q: Arch Linux 上 VAAPI 不工作
+
+A: 检查以下内容：
+1. 确认已安装 intel-media-driver: `sudo pacman -S intel-media-driver`
+2. 确认已安装 libva-utils: `sudo pacman -S libva-utils`
+3. 运行 `vainfo` 检查 VAAPI 驱动是否加载
+4. 如需最新版本，考虑从 AUR 安装: `yay -S intel-media-driver-git`
