@@ -6,10 +6,12 @@ echo "========== Hardware Information =========="
 echo ""
 
 echo "--- CPU Info ---"
-if command -v sysctl &> /dev/null; then
+if command -v lscpu &> /dev/null; then
+    lscpu | grep -E "Model name|CPU\(s\)|Thread|Core|Socket"
+elif command -v sysctl &> /dev/null; then
     sysctl -n machdep.cpu.brand_string 2>/dev/null || sysctl -n hw.model
-elif command -v lscpu &> /dev/null; then
-    lscpu | grep -E "Model name|CPU\(s\)|Thread|Core"
+elif [ -f /proc/cpuinfo ]; then
+    grep -m1 "model name" /proc/cpuinfo | cut -d: -f2 | xargs
 fi
 echo ""
 
