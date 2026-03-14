@@ -21,6 +21,18 @@ check_ffmpeg() {
     fi
 }
 
+check_vaapi_encoders() {
+    if [ -z "$VAAPI_DEVICE" ]; then
+        return 1
+    fi
+    
+    local profile=$1
+    if LIBVA_DRIVER_NAME=iHD vainfo --display drm --device "$VAAPI_DEVICE" 2>&1 | grep -q "$profile.*VAEntrypointEnc"; then
+        return 0
+    fi
+    return 1
+}
+
 test_transcode() {
     local encoder=$1
     local output_name=$2
@@ -133,25 +145,35 @@ elif [ "$GPU_TYPE" = "qsv" ]; then
 
 elif [ "$GPU_TYPE" = "vaapi" ]; then
     echo "--- Test 2: VAAPI H.264 (h264_vaapi) ---"
-    output_file="$OUTPUT_DIR/${INPUT_FILE%.mp4}_vaapi_h264.mp4"
-    LIBVA_DRIVER_NAME=iHD ffmpeg -hide_banner -y -vaapi_device "$VAAPI_DEVICE" -i "$INPUT_FILE" -t 10 -vf 'format=nv12,hwupload' -c:v h264_vaapi -c:a copy "$output_file" 2>&1 | tail -5
-    if [ -f "$output_file" ]; then
-        size=$(du -h "$output_file" | cut -f1)
-        echo "Output: $output_file ($size)"
-        echo "Status: SUCCESS"
+    if check_vaapi_encoders "VAProfileH264Main"; then
+        output_file="$OUTPUT_DIR/${INPUT_FILE%.mp4}_vaapi_h264.mp4"
+        LIBVA_DRIVER_NAME=iHD ffmpeg -hide_banner -y -vaapi_device "$VAAPI_DEVICE" -i "$INPUT_FILE" -t 10 -vf 'format=nv12,hwupload' -c:v h264_vaapi -c:a copy "$output_file" 2>&1 | tail -5
+        if [ -f "$output_file" ]; then
+            size=$(du -h "$output_file" | cut -f1)
+            echo "Output: $output_file ($size)"
+            echo "Status: SUCCESS"
+        else
+            echo "Status: FAILED"
+        fi
     else
-        echo "Status: FAILED"
+        echo "Status: SKIPPED (Hardware does not support H.264 encoding)"
     fi
     
     echo "--- Test 3: VAAPI H.265 (hevc_vaapi) ---"
-    output_file="$OUTPUT_DIR/${INPUT_FILE%.mp4}_vaapi_h265.mp4"
-    LIBVA_DRIVER_NAME=iHD ffmpeg -hide_banner -y -vaapi_device "$VAAPI_DEVICE" -i "$INPUT_FILE" -t 10 -vf 'format=nv12,hwupload' -c:v hevc_vaapi -c:a copy "$output_file" 2>&1 | tail -5
-    if [ -f "$output_file" ]; then
-        size=$(du -h "$output_file" | cut -f1)
-        echo "Output: $output_file ($size)"
-        echo "Status: SUCCESS"
+    if check_vaapi_encoders "VAProfileHEVCMain"; then
+        output_file="$OUTPUT_DIR/${INPUT_FILE%.mp4}_vaapi_h265.mp4"
+        LIBVA_DRIVER_NAME=iHD ffmpeg -hide_banner -y -vaapi_device "$VAAPI_DEVICE" -i "$INPUT_FILE" -t 10 -vf 'format=nv12,hwupload' -c:v hevc_vaapi -c:a copy "$output_file" 2>&1 | tail -5
+        if [ -f "$output_file" ]; then
+            size=$(du -h "$output_file" | cut -f1)
+            echo "Output: $output_file ($size)"
+            echo "Status: SUCCESS"
+        else
+            echo "Status: FAILED"
+        fi
     else
-        echo "Status: FAILED"
+        echo "Status: SKIPPED (Hardware does not support HEVC encoding)"
+        echo "Note: Intel Skylake (Gen9) GPU does not support HEVC hardware encoding."
+        echo "      HEVC encoding requires Kaby Lake (Gen9.5) or newer."
     fi
 fi
 
